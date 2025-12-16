@@ -2084,6 +2084,7 @@ local function translator(input, seg, env)
     if (input == "/rq" or input == "orq") then
         local num_year = os.date("%j/") .. IsLeap(os.date("%Y"))
         local date_variants = {
+            {os.date("_%Y%m%d.%H%M"), num_year},
             {os.date("%Y-%m-%d"), num_year},
             {os.date("%Y/%m/%d"), num_year},
             {os.date("%Y.%m.%d"), num_year},
