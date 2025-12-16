@@ -23,3 +23,5 @@
         }
         generate_candidates("date", seg, date_variants)
 ```
+- 增加小鹤双拼
+ - `default.custom.yaml`文件中：新增` - schema: double_pinyin_flypy`
