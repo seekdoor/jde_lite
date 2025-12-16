@@ -1,0 +1,5 @@
+patch:
+  style/horizontal: true
+  # menu/alternative_select_labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+  menu/alternative_select_labels: [ 〡, 〢, 〣, 〤, 〥, 〦, 〧, 〨, 〩, 〇 ]
+  ascii_composer/switch_key/Shift_L: commit_code

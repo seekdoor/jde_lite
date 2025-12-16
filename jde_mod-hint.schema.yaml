@@ -1,0 +1,124 @@
+# Rime schema settings
+# encoding: utf-8
+
+schema:
+  schema_id: jde_mod-hint
+  name: 鹤·煎蛋鹅
+  version: "1.0"
+  description: |
+    简单鹤纯字词版 + 有理一简 + 词库调整（带简码提示）
+  dependencies:
+    - reverse_pinyin   # 拼音单字反查
+
+__include: _jde_mod.base:/public_configs
+
+##################################################
+__patch:
+
+  # 次翻译器固定词频 （配合自造词使用）
+  fixed:
+    dictionary: jde_mod                # 挂载词库
+    enable_encoder: false           # 是否启用 自动造词  
+    enable_sentence: false          # 是否启用造句模式
+    encode_commit_history: false    # 是否对已上屛词自动成词  
+    enable_completion: false        # 编码提示开关（提前显示尚未输入完整码的字）
+    enable_user_dict: false         # 是否启用用户词典（记录动态字词频、自造词）
+    initial_quality: 3             # 初始权重应比其他高  
+
+  # 禁用原方案的翻译器
+  translator: null
+  'engine/translators/@02': null
+  # 魔然翻譯器
+  'engine/translators/@after 02': lua_translator@*moran_express_translator@with_reorder 
+  # 候选排序
+  'engine/filters/@after 00': lua_filter@*moran_reorder_filter
+  # 词语级出简让全
+  'engine/filters/@after 01': lua_filter@*moran_ijrq_filter
+  # 简快码提示
+  'engine/filters/@after 02': lua_filter@*moran_hint_filter
+
+  # # 自定义置顶词 自造词 快捷键响应
+  # 'engine/processors/@after 01': lua_processor@*moran_pin*pin_processor
+  # # 自定义置顶词 自造词
+  # 'engine/translators/@after 06': lua_translator@*moran_pin*panacea_translator
+  # # 替换掉雾凇版本自定义置顶词  （需配置 config_base 里的置顶词配置）
+  # 'engine/filters/@15': lua_filter@*moran_pin*pin_filter
+
+  moran:
+    # 簡快碼提示符
+    # 修改爲 "" 可取消提示符
+    # 建議在熟悉簡碼後再取消
+    quick_code_indicator: ""
+
+    # 詞輔功能
+    # 當輸入二字或三字詞時，允許詞末輸入 *一位* 輔助碼篩選詞語。
+    # 例如輸入 lmjxz 得到「連接」，輸入 lmjxj 得到「鏈接」。
+    # 但是與字輔輸入方法不同，詞輔在生效後 *不能* 在句末繼續輸入形成整
+    # 句——這個功能僅用於「詞語篩選」。因此，這個功能僅適合習慣於以詞語
+    # 爲單位輸入的用戶，因此默認是關閉的。
+    #
+    # 開啓後，詞輔篩選的詞語會帶有輔助碼提示，例如「鏈接」後會有「jf」，
+    # 意思是輸入 j *或* f 都可以定位到這個詞，而不是說要同時輸入 jf 兩個碼
+    # （相反，同時輸入 jf 兩碼後反而無法得到該選項）。
+    enable_word_filter: true
+    # 重設詞輔匹配提示符爲其他字符串。
+    # 即輸入 lmjxz 時被詞輔匹配的候選「連接」的提示符，不影響輔助碼提示功能的輸出。
+    # 設爲 "" 完全取消提示。
+    # 設爲 {} 表示不重設詞輔提示符。
+    word_filter_match_indicator: ""
+
+    # 「出簡讓全」相關設置
+    # 當一個字具有簡碼時，打其全碼（不論是 yyxx 還是 yyxxo）都會導致該
+    # 字讓出首位，而被推遲到後位。
+    ijrq:
+      enable: true       # 是否啓用單字的出簡讓全？
+      #defer: 5          # 延遲多少位？若不設置该项，或值小於等於 0，則推遲到第二頁的首選
+      show_hint: true    # 若讓全，則提示簡碼打法
+
+      # 詞語級「讓全」，對二、三、四字詞有效
+      # 例：假設 lmjx 的輸出是 1.連接 2.鏈接
+      # 想要「鏈接」時，增加 f ，但是由於這兩個候選仍然共享 lmjxf 編碼，因此順序不變。
+      # 若開啓詞語級讓全，則 lmjxf 的首選會被調整爲「鏈接」
+      enable_word: false
+
+    # 單字或詞輔的輔助碼提示
+    # 
+    # 單字輔助碼會顯示出所有可能的輔助碼，且不顯示拆分
+    # 建議使用 Ctrl+i 切換輔助碼拆分提示功能
+    #
+    # 詞輔助碼提示僅在開啓 enable_word_filter 時生效
+    # 具體提示格式請參考上面「詞輔功能」的說明
+    enable_aux_hint: false
+
+    # 簡快碼提示（包括字和詞）
+    # 例如 輸入 yy te er 英特爾 會提示「⚡yte」，即使用 yte 可以打出這個詞
+    enable_quick_code_hint: true
+    # 取消單字的簡快碼提示
+    quick_code_hint_skip_chars: true
+
+    # 輸入四碼時，如果簡碼碼表中含有對應條目，則放置在第二選項。
+    show_chars_anyway: true   # 是否輸出簡碼碼表單字，例：輸入 jwrg 時，次選爲「佳」
+    show_words_anyway: true   # 是否輸出簡碼碼表詞語，例：輸入 lmsd 時，次選爲「兩面三刀」
+
+    # 「置頂」功能相關設置
+    # 輸入時通過快捷鍵 Ctrl+t 可以將高亮顯示的候選置頂，被置頂的候選位置固定，不再參與調頻
+    # 對同一輸入碼最高支持8個置頂詞，當嘗試置頂第9個詞時，最早被置頂的詞將會失效
+    pin:
+      # 「置頂」功能開關
+      enable: true
+      # 置頂詞提示符
+      indicator: "ᵀᴼᴾ"
+      # 「萬靈藥」加詞功能
+      # 通過輸入 「編碼A」//「編碼B」 實現造詞功能，編碼A是這個新詞的新編碼 編碼B是目前可以打出該詞的編碼
+      # 例如 輸入 tnfb 不能得到「頭腦風暴」這一候選， 此時我們可以輸入 tnfb//tbnkfgbk 按下空格 讓「頭腦風暴」候選上屏，上屏的詞會被加入用戶詞庫中，之後我們可以用 tnfb 來得到「頭腦風暴」這一候選了
+      # 造出的詞與置頂詞是等同的
+      panacea:
+        # 加詞狀態提示
+        prompt: "〔加詞〕"
+        # 加詞中綴引導符
+        infix: "//"
+        # 自由加詞模式開關，開啓此模式後，輸入「編碼A」//並空格上屏後會進入加詞狀態，此時可以連續地、不受束縛地輸入，再次按下x//空格退出加詞狀態，期間輸入的內容將會被記錄爲「編碼A」的新置頂詞
+        # 此模式適合造一些混合詞，如「A4紙」、「KOS-MOS」等
+        freestyle: false
+
+##################################################

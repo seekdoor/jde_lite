@@ -1,0 +1,182 @@
+public_configs:
+
+  switches:
+    - name: ascii_mode
+      reset: 0
+      states: [ 鹤, En ]
+    - name: full_shape
+      states: [ 半角, 全角 ]
+    - name: simplification
+      states: [ 简, 繁 ]
+      reset: 0
+    - name: ascii_punct
+      states: [ 。，, ．， ]
+      reset: 0
+
+  engine:
+    processors:
+      - ascii_composer
+      - recognizer
+      - key_binder
+      - speller
+      - punctuator
+      - selector
+      - navigator
+      - express_editor
+    segmentors:
+      - ascii_segmentor
+      - matcher
+      - abc_segmentor
+      - punct_segmentor
+      - fallback_segmentor
+    translators:
+      - punct_translator
+      - reverse_lookup_translator
+      - table_translator
+      - table_translator@custom_quick_syb
+      # 小助手，命令格式 "/xx" 或 "oxx"
+      # - 支持: rq日期, uj时间, nl农历, xq星期, ww周次, jq节气, tt时间戳, rs日期时间, jr节日, day今日提醒
+      - lua_translator@*shijian
+      - history_translator@history
+    filters:
+      - reverse_lookup_filter@reverse_lookup_filter  # 反查的filter
+      - simplifier
+      - simplifier@simplification
+      - uniquifier
+
+  speller:
+    alphabet: "abcdefghijklmnopqrstuvwxyz;"
+    initials: "abcdefghijklmnopqrstuvwxyz;"
+    finals: "'"
+    # delimiter: " '"
+    # max_code_length: 20
+    max_code_length: 4
+    auto_select: true
+    # auto_select_pattern: ^;.$|^\w{4}$
+    auto_select_pattern: ^;(\w+|;)$
+    auto_clear: max_length          #manual|auto|max_length 空码按下一键确认清屏|空码自动清|达到最长码时后码顶上清屏
+
+  # 主翻译器
+  translator:
+    dictionary: jde_mod                # 挂载词库
+    enable_charset_filter: false    # 字符集过滤（低重形码用不着）
+    enable_encoder: false           # 是否启用 自动造词  
+    enable_sentence: false          # 是否启用造句模式
+    encode_commit_history: false    # 是否对已上屛词自动成词  
+    enable_completion: false        # 编码提示开关（提前显示尚未输入完整码的字）
+    enable_user_dict: false         # 是否启用用户词典（记录动态字词频、自造词）
+  #  max_phrase_length: 4           # 最大自动成词 词长
+    initial_quality: 3              # 主词库 初始权重应比其他高  
+
+  custom_quick_syb:
+    dictionary: ""
+    user_dict: custom_phrase/quick_symbol_phrase
+    db_class: stabledb
+    enable_sentence: false
+    enable_completion: false
+    initial_quality: 1
+
+  ##################################################
+  # 单字反查
+  reverse_lookup:
+    dictionary: reverse_pinyin
+    prefix: "`"
+    tips: "〔单字〕"
+    comment_format:
+      - "xform/^/ /"
+
+  reverse_lookup_filter:
+    tags: [radical_lookup,stroke_lookup,reverse_pinyin_lookup,tiger_lookup] #挂在这个tag所对应的翻译器上
+    overwrite_comment: true
+    dictionary: reverse_pinyin #反查所得词库
+    comment_format:
+      - xform/(\w\w);(\w\w);/$1[$2]/
+      - xform/(\w\w);(\w\w),(\w\w);/$1[$2][$3]/
+
+  recognizer:
+    import_preset: default
+    patterns:
+      # uppercase: "[A-Z][-_+.'0-9A-Za-z]*$"
+      uppercase: ""                 #中文状态大写锁定直接上屏
+      reverse_lookup: "[a-z`]*`+[a-z`]*"
+      punct: ""
+      # expression: "^=.*$"
+      reverse_pinyin_lookup: "(^(`[a-z`]+))|(^([a-z]{2}(`[a-z`]?|[a-z`]`))|^([a-z]{4}`))"  # 响应 临时「`」统配反查
+
+  key_binder:
+    import_preset: default          # 方案切换相关
+    bindings:
+      # - {accept: bracketleft, send: Page_Up, when: paging} # [上翻页
+      # - {accept: bracketright, send: Page_Down, when: has_menu} # ]下翻页
+      - {accept: comma, send: comma, when: paging} #注销逗号翻页
+      - {accept: period, send: period, when: has_menu} #注销句号翻页
+      - {accept: semicolon, send: 2, when: has_menu} #分号次选
+      - {accept: apostrophe, send: 3, when: has_menu}
+      - {accept: bracketleft, send: 4, when: has_menu}
+      - {accept: bracketright, send: 5, when: has_menu}
+      # - {accept: Release+semicolon, send: semicolon, when: has_menu} #如启用此行，则分号引导符号功能无效
+      - {accept: Release+period, send: period, when: composing} #句号顶屏
+      - {accept: Release+comma, send: comma, when: composing} #逗号顶屏
+      # - {accept: "Tab", send: Escape, when: composing}
+      # Shift+Tab 向前翻页
+      - {accept: Shift+Tab, send: Page_Up, when: paging} 
+      # Tab 向后翻页
+      - {accept: Tab, send: Page_Down, when: has_menu} 
+
+      - {accept: "Shift_R", send: Escape, when: composing}
+      - {accept: "Shift+space", toggle: full_shape, when: always} #切换全半角
+      - {accept: "Control+period", toggle: ascii_punct, when: always} #切换中英标点
+      # - {accept: "Control+j", toggle: simplification, when: always} #切换简繁
+
+  __patch:
+
+    menu/page_size: 5                    # 候选项数
+
+    style:
+      candidate_format: '[label] [candidate] [comment]'  # 候选项格式化
+      text_orientation: horizontal
+      candidate_list_layout: linear
+      translucency: true
+
+    ascii_composer/good_old_caps_lock: true
+    ascii_composer/switch_key:
+      Caps_Lock: noop
+      Shift_L: commit_code
+      Shift_R: commit_code
+      Control_L: noop
+      Control_R: noop
+
+    punctuator/half_shape:
+      "!": "！"
+      "\"": {pair: ["“", "”"]}
+      "'": {pair: ["‘", "’"]}
+      "#": "#"
+      "$": ["$", "￥", "€", "£", "¥", "¢", "¤"]
+      "%": "%"
+      "&": "&"
+      "(": "（"
+      ")": "）"
+      "*": "*"
+      "+": "+"
+      ",": "，"
+      "-": "-"
+      ".": "。"
+      "/": "/"
+      ":": "："
+      ";": ["`", "；", "~"]
+      "<": "《"
+      "=": "="
+      ">": "》"
+      "?": "？"
+      "@": "@"
+      "[": "【"
+      "\\": "、"
+      "]": "】"
+      "^": ["^", "……"]
+      _: "——"
+      "`": "`"
+      "{": ["『", "〖", "｛"]
+      "|": ["·", "|", "｜", "§", "¦"]
+      "}": ["』", "〗", "｝"]
+      "~": "～"
+

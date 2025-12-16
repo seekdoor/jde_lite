@@ -1,0 +1,15 @@
+# Rime schema settings
+# encoding: utf-8
+
+schema:
+  schema_id: jde
+  name: 简单鹤（字词版）
+  version: "1.0"
+  description: |
+    原版简单鹤的字词版
+
+__include: _jde_mod.base:/public_configs
+
+__patch:
+  translator/dictionary: jde
+  reverse_lookup_filter/dictionary: jde
